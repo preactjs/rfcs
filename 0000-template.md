@@ -1,7 +1,7 @@
 - Start Date: (fill me in with today's date, YYYY-MM-DD)
-- Target Major Version: (10.x / 11.x)
-- RFC PR: (leave this empty)
-- Issue: (leave this empty)
+- Target Major Version: (e.g. 10.x / 11.x)
+- RFC PR: (Fill this in once RFC PR is open)
+- Implementation PR: (Fill this in if/when one exits)
 
 # (RFC title goes here)
 
@@ -60,7 +60,7 @@ There are tradeoffs to choosing any path. Attempt to identify them here.
 What other designs have been considered? What is the impact of not doing this?
 
 This section could also include prior art, that is, how other frameworks in the
-same domain have solved this problem differently.
+same domain have solved this problem similarly or differently.
 
 ## Adoption strategy
 
