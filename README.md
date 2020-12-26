@@ -1,19 +1,22 @@
 # Preact RFCs
 
-Many changes, including bug fixes and documentation improvements can be
-implemented and reviewed via the normal GitHub pull request workflow.
+This repository is a place to discuss major changes to Preact — where 'major'
+means significant changes either to public interfaces or internal implementation
+details, particularly those that could be controversial or involve breaking
+changes.
 
-Some changes though are "substantial", and we ask that these be put through a
-bit of a design process and produce a consensus among the Preact core team and
-the community.
+Most changes don't need to go through the RFC (request for comments) process
+outlined below and can rely on issues and pull requests.
 
-The "RFC" (request for comments) process is intended to provide a consistent and
-controlled path for new features to enter the project.
+A huge part of the value on an RFC is defining the problem clearly, collecting
+use cases, showing how others have solved a problem, etc. Coming up with a
+design is very iterative and only one part of the process. An RFC can provide
+tremendous value without the design described in it being accepted.
 
 [Pending RFC List](https://github.com/preactjs/rfcs/pulls)
 
-Preact is still **actively developing** this process, and it is subject to
-change (or even abandonment!) as we gain experience with it.
+Preact is still **developing** this process, and it is subject to change (or
+even abandonment) as we gain experience with it.
 
 ## The RFC life-cycle
 
@@ -23,65 +26,6 @@ An RFC goes through the following stages:
 - **Active:** when an RFC PR is merged and possibly undergoing implementation.
 - **Landed:** when an RFCs proposed changes are shipped in an actual release.
 - **Rejected:** when an RFC PR is closed without being merged.
-
-## When to follow this process
-
-You should consider using this process if you intend to make "substantial"
-changes to Preact. Some examples that would benefit from an
-RFC are:
-
-- A new feature that creates new API surface area
-- Changing the semantics or behavior of an existing API
-- The removal of features that are already shipped as part of the release
-  channel.
-- The introduction of new idiomatic usage or conventions, even if they do not
-  include code changes to Preact itself.
-
-Some changes do not require an RFC:
-
-- Additions that strictly improve objective, numerical quality criteria
-  (speedup, better browser support)
-- Fixing objectively incorrect behavior
-- Rephrasing, reorganizing or refactoring
-- Addition or removal of warnings
-- Additions only likely to be _noticed by_ other implementors-of-Preact,
-  invisible to users-of-Preact.
-
-If you submit a pull request to implement a new feature without going through
-the RFC process, it may be closed with a polite request to submit an RFC first.
-
-## Why do you need to do this
-
-**TODO: WRITE THIS SECTION**
-
-**TODO: Consider mentioning something in particular about size constraints**
-
-**FROM VUE**
-
-It is great that you are considering suggesting new features or changes to Preact -
-we appreciate your willingness to contribute! However, as Preact becomes more
-widely used, we need to take stability more seriously, and thus have to
-carefully consider the impact of every change we make that may affect end users.
-On the other hand, we also feel that Preact has reached a stage where we want to
-start consciously preventing further complexity from new API surfaces.
-
-These constraints and tradeoffs may not be immediately obvious to users who are
-proposing a change just to solve a specific problem they just ran into. The RFC
-process serves as a way to guide you through our thought process when making
-changes to Preact, so that we can be on the same page when discussing why or why
-not these changes should be made.
-
-**FROM REACT**
-
-The RFC process is a great opportunity to get more eyeballs on your proposal
-before it becomes a part of a released version of Preact. Quite often, even
-proposals that seem "obvious" can be significantly improved once a wider group
-of interested people have a chance to weigh in.
-
-The RFC process can also be helpful to encourage discussions about a proposed
-feature as it is being designed, and incorporate important constraints into the
-design while it's easier to change, before the design has been fully
-implemented.
 
 ## The process
 
@@ -111,10 +55,9 @@ and may be implemented with the goal of eventual inclusion into Preact.
 
 * RFCs that are candidates for inclusion in Preact will enter a "final comment
   period" lasting 3 calendar days. The beginning of this period will be signaled
-  with a comment and tag on the RFCs pull request.
-
-* An RFC can be modified based upon feedback from the team and community.
-  Significant modifications may trigger a new final comment period.
+  with a comment and tag on the RFCs pull request. An RFC can be modified based
+  upon feedback from the team and community. Significant modifications may
+  trigger a new final comment period.
 
 * An RFC may be rejected after public discussion has settled and comments have
   been made summarizing the rationale for rejection. A member of the team should
@@ -165,7 +108,19 @@ a regular basis. If a core team member believes an RFC PR is ready to be
 accepted into active status, they can approve the PR using GitHub's review
 feature to signal their approval of the RFC.
 
-## Prior art
+We tend to do our thinking informally, in the open, when time allows. There are
+a large number of community members relative to a small number of a core
+contributors who have many responsibilities. You can help ensure your RFC is
+reviewed in a timely manner by putting in the time to think through the various
+details discussed in the template. It doesn't scale to push the thinking onto a
+small number of core contributors. If reviewers raise an issue, don't dismiss it
+as irrelevant, but take the time to provide examples or data explaining it and
+coming up with ways that the design might be changed in response. Sometimes
+answering a single question can be very time consuming (such as setting up a
+benchmark), but discussions tend to stall out if concerns don't get thoroughly
+addressed.
+
+## Other RFC processes
 
 Our RFC process is inspired by (which is to say shamelessly ripped off from)
 similar processes in the community including:
