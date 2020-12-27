@@ -23,6 +23,7 @@ even abandonment) as we gain experience with it.
 An RFC goes through the following stages:
 
 - **Pending:** when the RFC is submitted as a PR.
+- **Candidate:** when the core team has signaled interest in pursuing an RFC.
 - **Active:** when an RFC PR is merged and possibly undergoing implementation.
 - **Landed:** when an RFCs proposed changes are shipped in an actual release.
 - **Rejected:** when an RFC PR is closed without being merged.
