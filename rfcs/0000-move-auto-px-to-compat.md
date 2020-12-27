@@ -1,7 +1,7 @@
 - Start Date: 2020-12-26
 - Target Major Version: 11.x
-- RFC PR: (Fill this in once RFC PR is open)
-- Implementation PR: preactjs/preact#2629
+- RFC PR: [preactjs/rfcs#6](https://github.com/preactjs/rfcs/pull/6)
+- Implementation PR: [preactjs/preact#2629](https://github.com/preactjs/preact/pull/2629)
 
 # Move auto-px to compat sub-package
 
@@ -25,7 +25,9 @@ function App() {
 
 ## Motivation
 
-Related issues: preactjs/preact#2621, preactjs/preact#2607
+Related issues:
+[preactjs/preact#2621](https://github.com/preactjs/preact/issues/2621),
+[preactjs/preact#2607](https://github.com/preactjs/preact/issues/2607)
 
 In order for the `auto-px` feature to work properly, it needs to efficiently
 list all CSS properties that do not accept a `px` unit. Keeping this list in
@@ -37,8 +39,8 @@ appropriate. As such, it is reasonable for Preact to expect the same from
 developers.
 
 We've also had reports (see relevant paragraph near the top of
-preactjs/preact#2621) of this feature being confusing to developers coming from
-writing HTML/CSS directly.
+[preactjs/preact#2621](https://github.com/preactjs/preact/issues/2621)) of this
+feature being confusing to developers coming from writing HTML/CSS directly.
 
 However, because React supports this feature, we must keep it around in
 `preact/compat`.
