@@ -36,7 +36,7 @@ and may be implemented with the goal of eventual inclusion into Preact.
 
 * Fork the RFC repo http://github.com/preactjs/rfcs
 
-* Copy `0000-template.md` to `text/0000-my-feature.md` (where 'my-feature' is
+* Copy `0000-template.md` to `rfcs/0000-my-feature.md` (where 'my-feature' is
   descriptive. Don't assign an RFC number yet).
 
 * Fill in the RFC. Put care into the details: **RFCs that do not present
