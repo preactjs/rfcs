@@ -38,6 +38,9 @@ app. From initial Preact X implementation.
 Specify which child of a parent to being **rendering** with. Expectation is
 full, corrective property diffing.
 
+Currently has bugs when using `replaceNode` (see "Full diffing with
+`replaceNode`" section below).
+
 </dd>
 
 <dt>Specify child to begin **rendering** with and **merge**</dt>
@@ -228,15 +231,36 @@ added.
 
 </dd>
 
-<dt>Keyed diffing with `replaceNode`</dt>
+<dt>Full diffing with `replaceNode`</dt>
 <dd>
 
-In two issues ([preactjs/preact#2496], [preactjs/preact#2791]) the developer expected Preact to do a
-proper keyed diffed when calling `render` with the `replaceNode`.
+In a couple of issues the developer expected Preact to do a proper diff when
+calling `render` with the `replaceNode`. This expectation further "muddles" the
+meaning of `replaceNode`: is it used for hydration and claiming DOM nodes
+(mostly how it is coded today) or for diffing (the feature creep of
+`replaceNode`).
 
-This expectation further "muddles" the meaning of `replaceNode`: is it used for
-hydration and claiming DOM nodes (mostly how it is coded today) or for diffing
-(the feature creep of `replaceNode`).
+These issues currently expose a bug with diffing while using `replaceNode`. For
+all these issues, the second render triggers a re-mount of a VNode (either
+through a new key or new type). This means there is a new VNode to be mounted
+(the one with the new key) and an old VNode to be unmounted (the one with the
+old key). When the new VNode to be mounted is diffed, because the `replaceNode`
+parameter is present, `excessDomChildren` is not null. This causes the new VNode
+to "claim" the existing DOM child of `replaceNode`. However, this DOM is the
+same DOM that was already "claimed" in the initial render by the old VNode that
+is be unmounted. So once the old VNode is unmounted, the DOM is removed from the
+document.
+
+The above paragraph demonstrates the complexity of the `replaceNode`. Originally
+it was intended to be used only for hydration, but due to feature creep and
+Preact 8 migration confusion, there is an expectation that it also does full
+rendering. In the presence of the `replaceNode` param, how do we know deep in a
+tree if a DOM child should be claimed or if a sub tree should be rebuilt.
+Hydration always claims, normal rendering always rebuilds.
+
+- [preactjs/preact#2496] (unmounting element with key)
+- [preactjs/preact#2500] (unmounting matching type)
+- [preactjs/preact#2791] (unmounting element with key)
 
 <!-- When calling `render` twice with the `replaceNode` parameter, there are two
 competing sources of truth: the old virtual tree (with it's associated DOM
@@ -399,5 +423,6 @@ Some workarounds:
 [preactjs/preact#2260]: https://github.com/preactjs/preact/issues/2260
 [preactjs/preact#2264]: https://github.com/preactjs/preact/issues/2264
 [preactjs/preact#2496]: https://github.com/preactjs/preact/issues/2496
+[preactjs/preact#2500]: https://github.com/preactjs/preact/issues/2500
 [preactjs/preact#2522]: https://github.com/preactjs/preact/issues/2522
 [preactjs/preact#2791]: https://github.com/preactjs/preact/issues/2791
