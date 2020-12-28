@@ -350,6 +350,10 @@ they exist.
 
 ## Alternatives
 
+**TODO Mention alternative could be to fix remaining bugs with `replaceNode` but
+how that introduces more complexity and size we'd rather spend on other features
+(e.g. progressive hydration).**
+
 By default, using `render` without `replaceNode` will always append to the
 parent. This behavior can lead to extra wrapping divs. The former `replaceNode`
 becomes the parent of the Preact app which may also render a top-level `div`.
