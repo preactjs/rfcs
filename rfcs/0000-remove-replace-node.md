@@ -17,6 +17,40 @@
 
 ## Research
 
+### Use cases
+
+In summary, seems like `replaceNode` in Preact X was originally meant for
+hydration but due to feature creep and confusion with Preact 8's `replaceNode`
+param, it's behavior became partially mixed with rendering and diffing.
+
+<dl>
+<dt>Partial hydration</dt>
+<dd>
+
+Specify which child of a parent to begin hydrating with. Assumes fully SSR'ed
+app. From initial Preact X implementation.
+
+</dd>
+
+<dt>Specify child to begin **rendering** with and **diff**</dt>
+<dd>
+
+Specify which child of a parent to being **rendering** with. Expectation is
+full, corrective property diffing.
+
+</dd>
+
+<dt>Specify child to begin **rendering** with and **merge**</dt>
+<dd>
+
+Specify which child of a parent to being **rendering** with. Expectation is
+props should be merged with existing DOM attributes.
+
+</dd>
+</dl>
+
+### PRs & Issues
+
 Related PRs and their associated issues:
 
 <dl>
@@ -103,6 +137,11 @@ specific child of a parent) and so just the first dom is created and needs to be
 "claimed" while all of its children are created from scratch. Need to think more
 about how this accommodate this scenario.
 
+Follow up PRs:
+
+- [preactjs/preact#1802]: simple follow up to use a special internal flag for
+  hydration
+
 Associated issues:
 
 - [preactjs/preact#1783]: Render bug with replaceNode parameter after update
@@ -110,32 +149,129 @@ Associated issues:
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/1802">#1802 Use internal reference for hydration flag</a></dt>
+<dt>[#1900 (fix) - replacing a node](https://github.com/preactjs/preact/pull/1900)</dt>
 <dd>
 
-Just a simple follow up to the previous PR (preactjs/preact#1786) to use a
-special internal flag for hydration instead of `null` which could represent a
-null DOM node.
+The issue here was caused by first calling `render` with two args then `render`
+with 3 args (including a `replaceNode`). This behavior caused the diff engine to
+first create DOM in the first `render` and then in the second call to `render`
+attempt to "re-claim" the same dom it had previously already created. This
+second attempt to re-claim is unnecessary because the DOM created in the first
+render is already tracked by the store virtual tree. There is no need to
+re-claim it.
+
+However this calling pattern exposed a bug where we weren't properly claiming
+text nodes when `excessDomChildren` wasn't null, causing them to be removed.
+
+Note this PR is superseded by [preactjs/preact#2356] in case you want to follow
+along how the code has changed.
+
+**TODO: Investigate if this could've occurred doing normal hydration or if it
+required the double `render` call pattern to reproduce**
+
+Follow up PRs:
+
+- [preactjs/preact#1970]: Make this behavior work for calling `render` with
+  `replaceNode` twice
+
+Associated issues:
+
+- [preactjs/preact#1896]: preact.render third argument causes weird behavior
 
 </dd>
 
-[#1900 (fix) - replacing a node](https://github.com/preactjs/preact/pull/1900)
+<dt><a href="https://github.com/preactjs/preact/pull/2195">#2195 Added unit tests to check proper component unmounting</a></dt>
+<dd>
 
-[#1970 (fix) - double replaceNode](https://github.com/preactjs/preact/pull/1970)
+**TODO**
 
-[#2195 Added unit tests to check proper component unmounting](https://github.com/preactjs/preact/pull/2195)
+Associated Issues
 
-[#2274 avoid removing existing dom nodes on subsequent replaceNode calls](https://github.com/preactjs/preact/pull/2274)
+- [preactjs/preact#2168]: Unmount not called for nested children on render (since preact X)
 
-[#2210 [DRAFT] Handle subtree replaced via replaceNode](https://github.com/preactjs/preact/pull/2210)
+</dd>
+
+<dt><a href="https://github.com/preactjs/preact/pull/2274">#2274 avoid removing existing dom nodes on subsequent replaceNode calls</a></dt>
+<dd>
+
+**TODO**
+
+Associated Issues
+
+- [preactjs/preact#2260]: App breaks after root update if rendered with replaceNode
+- [preactjs/preact#2264]: Preact 10 rendering into document.body clobbers existing DOM nodes
+
+</dd>
+
+<dt><a href="https://github.com/preactjs/preact/pull/2210">#2210 [DRAFT] Handle subtree replaced via replaceNode</a></dt>
+<dd>
+
+**TODO**
+
+</dd>
 
 </dl>
 
-Some prominent issues (TODO: finish this list):
+Some prominent issues:
+
+<dl>
+
+<dt>Attribute merging</dt>
+<dd>
+
+Here are some issues that expect attribute **merging** instead of diffing.
+Existing DOM attributes should be left alone while vnode attributes should be
+added.
+
+- [preactjs/preact#2022]
+- [preactjs/preact#2449]
+
+</dd>
+
+<dt>Keyed diffing with `replaceNode`</dt>
+<dd>
+
+In two issues ([preactjs/preact#2496], [preactjs/preact#2791]) the developer expected Preact to do a
+proper keyed diffed when calling `render` with the `replaceNode`.
+
+This expectation further "muddles" the meaning of `replaceNode`: is it used for
+hydration and claiming DOM nodes (mostly how it is coded today) or for diffing
+(the feature creep of `replaceNode`).
+
+<!-- When calling `render` twice with the `replaceNode` parameter, there are two
+competing sources of truth: the old virtual tree (with it's associated DOM
+nodes) and the DOM tree of `replaceNode`. Which do we use? Currently passing
+in `replaceNode` always favors claiming `excessDomChildren`. This behavior was
+unexpected by the developer in [preactjs/preact#2791] who was using
+`replaceNode` with VNodes with keys.
+
+Fundamentally, we have different heuristics for matching the new VNode tree to
+the old virtual tree (this uses types and keys) vs when trying to claim
+existing DOM nodes (only look at type). -->
+
+</dd>
+
+</dl>
+
+**TODO: Investigate:**
 
 - [#2004 Render / replaceNode unexpected behavior?](https://github.com/preactjs/preact/issues/2004)
 
 ## Motivation
+
+Much of the confusion can likely be attributed to the difference between Preact
+X and Preact 8 where Preact 8 required the 3-arg to do diffing and Preact X did
+not. A lesson learned here to perhaps better understand developers use cases and
+educate developers on changes.
+
+Examples of confusion:
+
+- Should not be using both 2-arg render and 3-arg render together:
+  - https://github.com/preactjs/preact/issues/1896
+  - https://github.com/preactjs/preact/issues/2008
+- Expected `replaceNode` to behave like React and be the DOM node that your app
+  literally "replaces":
+  - https://github.com/preactjs/preact/issues/2522
 
 > Why are we doing this? What use cases does it support? What is the expected
 > outcome?
@@ -197,7 +333,7 @@ becomes the parent of the Preact app which may also render a top-level `div`.
 Some workarounds:
 
 - Use a ["parent root fragment"](https://gist.github.com/developit/7c1b983dbd2cb68e6cefd367dfcf0ca1)
-  to pass to the `parent` parameter of `render`.
+  to pass to the `parent` parameter of `render`. [Issue where developer claims it works for them](https://github.com/preactjs/preact/issues/2791)
 - To avoid a wrapper div, render a Preact Fragment into the wrapper (or formerly
   `replaceNode`). Works well if wrapper div doesn't change based on component
   state.
@@ -241,6 +377,11 @@ Some workarounds:
 
 ## Unresolved questions
 
+- Unrelated, but we should probably re-clarify to developers that our `render`
+  function doesn't remove the contents of the `parent` DOM unlike React.
+  Developers will need to do this themselves before calling `render` if that
+  behavior is desired. (e.g. [preactjs/preact#2522])
+
 > Optional, but suggested for first drafts. What parts of the design are still
 > TBD?
 
@@ -248,3 +389,15 @@ Some workarounds:
 [preactjs/preact#1665]: https://github.com/preactjs/preact/issues/1665
 [preactjs/preact#1722]: https://github.com/preactjs/preact/issues/1722
 [preactjs/preact#1783]: https://github.com/preactjs/preact/issues/1783
+[preactjs/preact#1802]: https://github.com/preactjs/preact/pull/1802
+[preactjs/preact#1896]: https://github.com/preactjs/preact/issues/1896
+[preactjs/preact#2356]: https://github.com/preactjs/preact/pull/2356
+[preactjs/preact#1970]: https://github.com/preactjs/preact/pull/1970
+[preactjs/preact#2022]: https://github.com/preactjs/preact/issues/2022
+[preactjs/preact#2449]: https://github.com/preactjs/preact/issues/2449
+[preactjs/preact#2168]: https://github.com/preactjs/preact/issues/2168
+[preactjs/preact#2260]: https://github.com/preactjs/preact/issues/2260
+[preactjs/preact#2264]: https://github.com/preactjs/preact/issues/2264
+[preactjs/preact#2496]: https://github.com/preactjs/preact/issues/2496
+[preactjs/preact#2522]: https://github.com/preactjs/preact/issues/2522
+[preactjs/preact#2791]: https://github.com/preactjs/preact/issues/2791
