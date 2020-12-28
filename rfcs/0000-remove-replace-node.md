@@ -77,9 +77,7 @@ Associated links:
 
 </dd>
 
-<dt>
-<a href="https://github.com/preactjs/preact/pull/1647">#1647 (fix) - should call unmount when replacing components]()</a>
-</dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1647">#1647 (fix) - should call unmount when replacing components]()</a></dt>
 <dd>
 
 Subsequent calls to `render` with `replaceNode` parameter should
@@ -152,7 +150,7 @@ Associated issues:
 
 </dd>
 
-<dt>[#1900 (fix) - replacing a node](https://github.com/preactjs/preact/pull/1900)</dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1900">#1900 (fix) - replacing a node</a></dt>
 <dd>
 
 The issue here was caused by first calling `render` with two args then `render`
