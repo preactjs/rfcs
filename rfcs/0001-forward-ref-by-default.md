@@ -62,7 +62,7 @@ Now with the newly implemented situation:
 ```jsx
 import { useRef } from 'preact/hooks';
 
-const Child = (props, ref) => {
+const Child = (props) => {
   return (
     <div ref={props.ref}>Foo</div>
   )
