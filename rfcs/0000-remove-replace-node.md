@@ -1,27 +1,165 @@
-- Start Date: 2020-27-12
+- Start Date: 2021-01-04
 - Target Major Version: 11.x
 - RFC PR: (Fill this in once RFC PR is open)
 - Implementation PR: (partial start:
   [preactjs/preact#2627](https://github.com/preactjs/preact/pull/2627))
 
-# (RFC title goes here)
+# Remove built-in support for `render`'s 3rd parameter: `replaceNode`
 
 ## Summary
 
-> Brief explanation of the feature.
+Currently, apps can specify a 3rd parameter to `render`.
+
+```jsx
+render(<App />, document.body, document.body.firstChild);
+```
+
+This RFC proposes removing support for the 3rd parameter. It also proposes
+workarounds for most use cases.
 
 ## Basic example
 
-> If the proposal involves a new or changed API, include a basic code example.
-> Omit this section if it's not applicable.
+The only way to call `render` will be
 
-## Research
+```jsx
+render(<App />, document.body);
+```
+
+## Background
+
+Preact 8's `render` function accepted a third parameter that specified the child of the
+container to begin hydrating or diffing with. One way to use this paramter was
+if `render` was called multiple times:
+
+```jsx
+let child = render(<App update={0} />, document.body);
+render(<App update={1} />, document.body, child);
+```
+
+The first original releases of Preact X (v10) removed this `replaceNode`
+parameter, but a community PR added it back ([preactjs/preact#1557]).
+
+The original implementation was focused on the use case of partial hydration. It
+used the `replaceNode` parameter to specify which child in the container should
+be hydrated.
+
+Over the course of Preact X's lifetime, due to confusion with Preact 8's
+`replaceNode` parameter and feature creep, the `replaceNode` parameter started
+to evolve into a parameter with confusing, poorly defined behavior. It was
+originally related to hydrating but became about mounting and diffing.
+
+To understand why this behavior is confusing, let's define what each of these
+terms mean:
+
+<dl>
+<dt>Hydration</dt>
+<dd>
+
+Hydration is what Preact does when there already exists DOM that the app wants
+to reuse with it's initial Preact "render" or "mount". Typically this DOM was
+created using a technique such as server-side rendering (SSR). By default, SSR
+DOM isn't interactive so the purpose of hydration is to make it interactive.
+
+When hydrating, Preact needs to do two things: 1) "claim" the existing DOM nodes
+and attach them to the appropriate virtual nodes, and 2) attach event listeners
+to the DOM nodes to make then interactive.
+
+Typically during hydration property diffing does not happen. This behavior is to
+ensure that hydration happens as fast as possible since your app won't be
+interactive until it completes. The SSR's DOM is assumed to already have the
+correct attributes for the initial render and so property diffing is unnecessary
+for this operation.
+
+</dd>
+<dt>Mounting <a href="#footnotes"><sup>1</sup></a></dt>
+<dd>
+
+Mounting is what Preact does when it has to create new DOM nodes when rendering
+an app because no DOM nodes exist. Here, Preact creates the DOM nodes your
+virtual tree specifies and applies properties and attributes to it.
+
+</dd>
+<dt>Diffing</dt>
+<dd>
+
+Diffing is what Preact does when it rerenders a VNode or Component. In this
+case, Preact has already mounted a virtual tree to DOM elements and now needs to
+update the DOM elements to adjust to any changes. Here, Preact compares the
+previously rendered virtual tree to the newly rendered virtual tree and applies
+and differences to the DOM.
+
+</dd>
+</dl>
+
+What makes the Preact X's `replaceNode` parameter confusing is that it has
+evolved over time to do all three of the above at the same time. The conflation
+of these ideas leads developers to expecting the wrong behavior with this
+parameter, possibly worse performance, and more complex internal implementation
+which increases the maintenance cost over time.
+
+## Motivation
+
+Much of the confusion can likely be attributed to the difference between Preact
+X and Preact 8 where Preact 8 required the 3-arg to do diffing and Preact X did
+not. A lesson learned here to perhaps better understand developers use cases and
+educate developers on changes.
+
+Examples of confusion:
+
+- Should not be using both 2-arg render and 3-arg render together:
+  - https://github.com/preactjs/preact/issues/1896
+  - https://github.com/preactjs/preact/issues/2008
+- Expected `replaceNode` to behave like React and be the DOM node that your app
+  literally "replaces":
+  - https://github.com/preactjs/preact/issues/2522
+- Migrating from 8 to 10
+  - [preactjs/preact#2168]
+  - [preactjs/preact#2260]
+  - [preactjs/preact#2264]
+  - [preactjs/preact#2004]
+
+> Why are we doing this? What use cases does it support? What is the expected
+> outcome?
+>
+> Please focus on explaining the motivation so that if this RFC is not accepted,
+> the motivation could be used to develop alternative solutions. In other words,
+> enumerate the constraints you are trying to solve without coupling them too
+> closely to the solution you have in mind.
+>
+> Please provide specific examples. If you say "this would be more flexible"
+> then give an example of something that becomes easier. If you say "this would
+> be make it easier to do X" then give an example of what that looks like today
+> and what's hard about it.
+>
+> Don't assume that others recognize the problem is one that needs to be solved.
+> Is there some concrete issue you cannot accomplish without this? What does it
+> look like to accomplish some set of goals today and how could that be
+> improved? Are there any workarounds that are necessary today? Are there open
+> issues on Github where people would be helped by this?
+
+## Detailed design
+
+> This is the bulk of the RFC. Explain the design in enough detail for somebody
+> familiar with Preact to understand, and for somebody familiar with the
+> implementation to implement. This should get into specifics and corner-cases,
+> and include examples of how the feature is used. Any new terminology should be
+> defined here.
+
+To consider: Should our hydration bailout into normal rendering + appending if
+it can not find the proper matching element to hydrate? Doing this would support
+the `replaceNode` scenario of using a `div` marker (see
+[preactjs/preact#1722](https://github.com/preactjs/preact/issues/1722)) to
+specify where to begin **rendering** an app. So while the intention is to
+_render_ (the entire app wasn't SSR'ed so hydration doesn't really make sense)
+we'd still use hydration to capture the existing DOM marker (formerly the
+`replaceNode`) and then bailout to normal rendering once we realize their are no
+other children in the parent. I'd imagine hydration does not search for matching
+DOM node but just uses the DOM nodes in place in order they appear as long as
+they exist.
 
 ### Use cases
 
-In summary, seems like `replaceNode` in Preact X was originally meant for
-hydration but due to feature creep and confusion with Preact 8's `replaceNode`
-param, it's behavior became partially mixed with rendering and diffing.
+**TODO: Go through the various use cases and demonstrate a workaround**
 
 <dl>
 <dt>Partial hydration</dt>
@@ -29,6 +167,10 @@ param, it's behavior became partially mixed with rendering and diffing.
 
 Specify which child of a parent to begin hydrating with. Assumes fully SSR'ed
 app. From initial Preact X implementation.
+
+Associated issues:
+
+- [preactjs/preact#1557]
 
 </dd>
 
@@ -41,16 +183,115 @@ full, corrective property diffing.
 Currently has bugs when using `replaceNode` (see "Full diffing with
 `replaceNode`" section below).
 
-</dd>
+Closed:
 
-<dt>Specify child to begin **rendering** with and **merge**</dt>
-<dd>
+- [preactjs/preact#1645] Unmount with replacing components
+- [preactjs/preact#1665] Wants to diff two different components in one container
+- [preactjs/preact#1722] Creates marker element Preact should mount into
+- [preactjs/preact#1783] Wants property diffing on `replaceNode`
 
-Specify which child of a parent to being **rendering** with. Expectation is
-props should be merged with existing DOM attributes.
+Still open:
+
+- [preactjs/preact#2004] Various cases generally involving diffing
+- [preactjs/preact#2496] Doing a full diff while unmounting element with key
+- [preactjs/preact#2500] Doing a full diff while unmounting matching type
+- [preactjs/preact#2791] Doing a full diff while unmounting element with key
 
 </dd>
 </dl>
+
+## Drawbacks
+
+> Why should we _not_ do this? Please consider:
+>
+> - implementation cost, both in term of code size, performance, and complexity
+> - whether the proposed feature can be implemented in user space
+> - the impact on teaching people Preact
+> - integration of this feature with other existing and planned features
+> - cost of migrating existing Preact applications (is it a breaking change?)
+>
+> There are tradeoffs to choosing any path. Attempt to identify them here.
+
+## Alternatives
+
+**TODO Mention alternative could be to fix remaining bugs with `replaceNode` but
+how that introduces more complexity and size we'd rather spend on other features
+(e.g. progressive hydration).**
+
+**TODO: mention workaround in [preactjs/preact#2168]**
+
+By default, using `render` without `replaceNode` will always append to the
+parent. This behavior can lead to extra wrapping divs. The former `replaceNode`
+becomes the parent of the Preact app which may also render a top-level `div`.
+
+Some workarounds:
+
+- Use a ["parent root fragment"](https://gist.github.com/developit/7c1b983dbd2cb68e6cefd367dfcf0ca1)
+  to pass to the `parent` parameter of `render`. [Issue where developer claims it works for them](https://github.com/preactjs/preact/issues/2791)
+- To avoid a wrapper div, render a Preact Fragment into the wrapper (or formerly
+  `replaceNode`). Works well if wrapper div doesn't change based on component
+  state.
+
+  ```jsx
+  var wrapper = document.createElement("div");
+  document.body.appendChild(wrapper);
+  render(
+    <Fragment>
+      <A />
+      <B />
+    </Fragment>,
+    wrapper
+  );
+  ```
+
+> What other designs have been considered? What is the impact of not doing this?
+>
+> This section could also include prior art, that is, how other frameworks in
+> the same domain have solved this problem similarly or differently.
+
+## Adoption strategy
+
+> If we implement this proposal, how will existing Preact developers adopt it?
+> Is this a breaking change? Can we write a codemod? Can we provide a runtime
+> adapter library for the original API it replaces? How will this affect other
+> projects in the Preact ecosystem? Should we coordinate with other projects or
+> libraries?
+
+## How we teach this
+
+> How should this feature be taught to existing Preact developers?
+>
+> What names and terminology work best for these concepts and why? How is this
+> idea best presented? As a continuation of existing Preact patterns, or as a
+> wholly new one?
+>
+> Would the acceptance of this proposal mean the Preact documentation must be
+> re-organized or altered? Does it change how Preact is taught to new developers
+> at any level?
+
+## Unresolved questions
+
+- Unrelated, but we should probably re-clarify to developers that our `render`
+  function doesn't remove the contents of the `parent` DOM unlike React.
+  Developers will need to do this themselves before calling `render` if that
+  behavior is desired. (e.g. [preactjs/preact#2522])
+
+> Optional, but suggested for first drafts. What parts of the design are still
+> TBD?
+
+## Footnotes
+
+<p><sup>1</sup> Technically you could say hydration _mounts_ components to existing DOM elements while this operation mounts components to newly created DOM elements (hence the lifecycle `componentDidMount`). However for this document I'm breaking these apart and calling mounting with existing DOM elements "hydration" and mounting with new DOM elements "mounting"
+</p>
+
+## Research
+
+<details>
+<summary>Initial research into various issues and PRs related to <code>replaceNode</code></summary>
+
+In summary, seems like `replaceNode` in Preact X was originally meant for
+hydration but due to feature creep and confusion with Preact 8's `replaceNode`
+param, it's behavior became partially mixed with rendering and diffing.
 
 ### PRs & Issues
 
@@ -129,14 +370,13 @@ to existing DOM.
 In summary, this issue and PR make `replaceNode` close to **rendering** and not
 hydration since props are applied.
 
-**TODO: LOOK HERE** - this use case mixes rendering and hydration. Typically
-hydration is used to "claim" existing DOM nodes and place them into a new
-virtual tree. However hydration doesn't apply attributes (ideally it only adds
-event listeners). But this use case is really trying to "render" a new app into
-a container - it just needs more control over where that container lives (i.e. a
-specific child of a parent) and so just the first dom is created and needs to be
-"claimed" while all of its children are created from scratch. Need to think more
-about how this accommodate this scenario.
+This use case mixes rendering and hydration. Typically hydration is used to
+"claim" existing DOM nodes and place them into a new virtual tree. However
+hydration doesn't apply attributes (ideally it only adds event listeners). But
+this use case is really trying to "render" a new app into a container - it just
+needs more control over where that container lives (i.e. a specific child of a
+parent) and so just the first dom is created and needs to be "claimed" while all
+of its children are created from scratch.
 
 Follow up PRs:
 
@@ -304,24 +544,6 @@ Hydration always claims, normal rendering always rebuilds.
 - [preactjs/preact#2500] (unmounting matching type)
 - [preactjs/preact#2791] (unmounting element with key)
 
-**TODO: Do these match above??**
-
-- [preactjs/preact#2168] (unmounting multiple unrelated roots)
-- [preactjs/preact#1896] (text node removed incorrectly)
-- [preactjs/preact#2264] (dom node remove incorrectly)
-- [preactjs/preact#2210] (replaceNode changes DOM type)
-
-<!-- When calling `render` twice with the `replaceNode` parameter, there are two
-competing sources of truth: the old virtual tree (with it's associated DOM
-nodes) and the DOM tree of `replaceNode`. Which do we use? Currently passing
-in `replaceNode` always favors claiming `excessDomChildren`. This behavior was
-unexpected by the developer in [preactjs/preact#2791] who was using
-`replaceNode` with VNodes with keys.
-
-Fundamentally, we have different heuristics for matching the new VNode tree to
-the old virtual tree (this uses types and keys) vs when trying to claim
-existing DOM nodes (only look at type). -->
-
 </dd>
 
 </dl>
@@ -330,144 +552,7 @@ existing DOM nodes (only look at type). -->
 
 - [#2004 Render / replaceNode unexpected behavior?](https://github.com/preactjs/preact/issues/2004)
 
-## Motivation
-
-Much of the confusion can likely be attributed to the difference between Preact
-X and Preact 8 where Preact 8 required the 3-arg to do diffing and Preact X did
-not. A lesson learned here to perhaps better understand developers use cases and
-educate developers on changes.
-
-Examples of confusion:
-
-- Should not be using both 2-arg render and 3-arg render together:
-  - https://github.com/preactjs/preact/issues/1896
-  - https://github.com/preactjs/preact/issues/2008
-- Expected `replaceNode` to behave like React and be the DOM node that your app
-  literally "replaces":
-  - https://github.com/preactjs/preact/issues/2522
-- Migrating from 8 to 10
-  - [preactjs/preact#2168]
-  - [preactjs/preact#2260]
-  - [preactjs/preact#2264]
-  - [preactjs/preact#2004]
-
-> Why are we doing this? What use cases does it support? What is the expected
-> outcome?
->
-> Please focus on explaining the motivation so that if this RFC is not accepted,
-> the motivation could be used to develop alternative solutions. In other words,
-> enumerate the constraints you are trying to solve without coupling them too
-> closely to the solution you have in mind.
->
-> Please provide specific examples. If you say "this would be more flexible"
-> then give an example of something that becomes easier. If you say "this would
-> be make it easier to do X" then give an example of what that looks like today
-> and what's hard about it.
->
-> Don't assume that others recognize the problem is one that needs to be solved.
-> Is there some concrete issue you cannot accomplish without this? What does it
-> look like to accomplish some set of goals today and how could that be
-> improved? Are there any workarounds that are necessary today? Are there open
-> issues on Github where people would be helped by this?
-
-## Detailed design
-
-> This is the bulk of the RFC. Explain the design in enough detail for somebody
-> familiar with Preact to understand, and for somebody familiar with the
-> implementation to implement. This should get into specifics and corner-cases,
-> and include examples of how the feature is used. Any new terminology should be
-> defined here.
-
-To consider: Should our hydration bailout into normal rendering + appending if
-it can not find the proper matching element to hydrate? Doing this would support
-the `replaceNode` scenario of using a `div` marker (see
-[preactjs/preact#1722](https://github.com/preactjs/preact/issues/1722)) to
-specify where to begin **rendering** an app. So while the intention is to
-_render_ (the entire app wasn't SSR'ed so hydration doesn't really make sense)
-we'd still use hydration to capture the existing DOM marker (formerly the
-`replaceNode`) and then bailout to normal rendering once we realize their are no
-other children in the parent. I'd imagine hydration does not search for matching
-DOM node but just uses the DOM nodes in place in order they appear as long as
-they exist.
-
-## Drawbacks
-
-> Why should we _not_ do this? Please consider:
->
-> - implementation cost, both in term of code size, performance, and complexity
-> - whether the proposed feature can be implemented in user space
-> - the impact on teaching people Preact
-> - integration of this feature with other existing and planned features
-> - cost of migrating existing Preact applications (is it a breaking change?)
->
-> There are tradeoffs to choosing any path. Attempt to identify them here.
-
-## Alternatives
-
-**TODO Mention alternative could be to fix remaining bugs with `replaceNode` but
-how that introduces more complexity and size we'd rather spend on other features
-(e.g. progressive hydration).**
-
-**TODO: mention workaround in [preactjs/preact#2168]**
-
-By default, using `render` without `replaceNode` will always append to the
-parent. This behavior can lead to extra wrapping divs. The former `replaceNode`
-becomes the parent of the Preact app which may also render a top-level `div`.
-
-Some workarounds:
-
-- Use a ["parent root fragment"](https://gist.github.com/developit/7c1b983dbd2cb68e6cefd367dfcf0ca1)
-  to pass to the `parent` parameter of `render`. [Issue where developer claims it works for them](https://github.com/preactjs/preact/issues/2791)
-- To avoid a wrapper div, render a Preact Fragment into the wrapper (or formerly
-  `replaceNode`). Works well if wrapper div doesn't change based on component
-  state.
-
-  ```jsx
-  var wrapper = document.createElement("div");
-  document.body.appendChild(wrapper);
-  render(
-    <Fragment>
-      <A />
-      <B />
-    </Fragment>,
-    wrapper
-  );
-  ```
-
-> What other designs have been considered? What is the impact of not doing this?
->
-> This section could also include prior art, that is, how other frameworks in
-> the same domain have solved this problem similarly or differently.
-
-## Adoption strategy
-
-> If we implement this proposal, how will existing Preact developers adopt it?
-> Is this a breaking change? Can we write a codemod? Can we provide a runtime
-> adapter library for the original API it replaces? How will this affect other
-> projects in the Preact ecosystem? Should we coordinate with other projects or
-> libraries?
-
-## How we teach this
-
-> How should this feature be taught to existing Preact developers?
->
-> What names and terminology work best for these concepts and why? How is this
-> idea best presented? As a continuation of existing Preact patterns, or as a
-> wholly new one?
->
-> Would the acceptance of this proposal mean the Preact documentation must be
-> re-organized or altered? Does it change how Preact is taught to new developers
-> at any level?
-
-## Unresolved questions
-
-- Unrelated, but we should probably re-clarify to developers that our `render`
-  function doesn't remove the contents of the `parent` DOM unlike React.
-  Developers will need to do this themselves before calling `render` if that
-  behavior is desired. (e.g. [preactjs/preact#2522])
-
-> Optional, but suggested for first drafts. What parts of the design are still
-> TBD?
+</details>
 
 [preactjs/preact#1645]: https://github.com/preactjs/preact/issues/1645
 [preactjs/preact#1665]: https://github.com/preactjs/preact/issues/1665
@@ -477,6 +562,7 @@ Some workarounds:
 [preactjs/preact#1896]: https://github.com/preactjs/preact/issues/1896
 [preactjs/preact#2356]: https://github.com/preactjs/preact/pull/2356
 [preactjs/preact#1970]: https://github.com/preactjs/preact/pull/1970
+[preactjs/preact#2004]: https://github.com/preactjs/preact/issues/2004
 [preactjs/preact#2022]: https://github.com/preactjs/preact/issues/2022
 [preactjs/preact#2449]: https://github.com/preactjs/preact/issues/2449
 [preactjs/preact#2168]: https://github.com/preactjs/preact/issues/2168
