@@ -60,10 +60,12 @@ Related issues: [preactjs/preact#2621](https://github.com/preactjs/preact/issues
 Formal TypeScript interface:
 
 ```ts
+type ComponentChild = VNode | string | number | boolean | null;
+
 export function createRoot(
   parent: Element | Document | ShadowRoot | DocumentFragment
 ): {
-  render: (vnode: ComponentChild, replaceNode?: Element | Text ) => void;
+  render: (vnode: ComponentChild) => void;
   hydrate: (vnode: ComponentChild) => void;
 };
 ```
