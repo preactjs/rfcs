@@ -65,17 +65,20 @@ and attach them to the appropriate virtual nodes, and 2) attach event listeners
 to the DOM nodes to make then interactive.
 
 Typically during hydration property diffing does not happen. This behavior is to
-ensure that hydration happens as fast as possible since your app won't be
+ensure that hydration happens as fast as possible since the app won't be
 interactive until it completes. The SSR's DOM is assumed to already have the
 correct attributes for the initial render and so property diffing is unnecessary
 for this operation.
+
+Currently, if Preact cannot find matching DOM elements when hydrating, it'll
+create ones and add them to the parent DOM element.
 
 </dd>
 <dt>Mounting <a href="#footnotes"><sup>1</sup></a></dt>
 <dd>
 
 Mounting is what Preact does when it has to create new DOM nodes when rendering
-an app because no DOM nodes exist. Here, Preact creates the DOM nodes your
+an app because no DOM nodes exist. Here, Preact creates the DOM nodes the
 virtual tree specifies and applies properties and attributes to it.
 
 </dd>
@@ -114,9 +117,12 @@ the initial call to `render` by the old VNode that is be unmounted. So once the
 old VNode is unmounted, the DOM element that is claimed by both the old VNode
 and the new VNode is removed from the document.
 
-Trying to `hydrate` and `diff` at the same time can lead to subtle bugs such as
-this one. Avoiding these kinds of difficult to catch and debug issues is a
-reason to drop support for the `replaceNode` parameter.
+Further, [preactjs/preact#2004] documents a list of situations where the
+behavior of `replaceNode` is confusing and unintuitive.
+
+Trying to `hydrate` and `diff` at the same time can lead to subtle bugs such the
+ones mentioned above. Avoiding these kinds of difficult to catch and debug
+issues is a reason to drop support for the `replaceNode` parameter.
 
 ## Motivation
 
@@ -138,43 +144,129 @@ workarounds for each.
 
 ### Use cases
 
-**TODO: Go through the various use cases and demonstrate a workaround**
-
 <dl>
-<dt>Partial hydration</dt>
+<dt>Specify which child of container to hydrate/render</dt>
 <dd>
 
-Specify which child of a parent to begin hydrating with. Assumes fully SSR'ed
-app. From initial Preact X implementation.
+By far, the most common use case of the `replaceNode` parameter is to specify a
+specific child of a container Preact should render or hydrate, in other words,
+_replace_. This use case is where `replaceNode` gets its name. There are a
+couple workarounds a developer can employ depending on their scenario to still
+do this without using the `replaceNode` parameter.
 
-Associated issues:
+For the following workarounds we'll assume markup like the following exists in
+the document's body:
 
-- [preactjs/preact#1557]
+```html
+<div id="container">
+  <p>sibling before</p>
+  <p id="target"></p>
+  </p>sibling after</p>
+</div>
+```
 
-</dd>
+And the call to `render` with `replaceNode` looked like the following:
 
-<dt>Specify child to begin **rendering** with and **diff**</dt>
+```jsx
+const container = document.getElementId("container");
+const target = document.getElementById("target");
+
+function App() {
+  return (
+    <p>
+      <span>A beautiful</span>
+      <span>little sunset.</span>
+    </p>
+  );
+}
+
+render(<App />, container, target);
+```
+
+#### Workaround 1: Render a Fragment from App
+
+In this workaround, instead of replacing `p#target` with the `<p>` returned from
+`App`, we'll just return a Fragment from `App` with the two child `span`s and render them directly into `p#target`.
+
+```jsx
+function App() {
+  return (
+    <Fragment>
+      <span>A beautiful</span>
+      <span>little sunset.</span>
+    </Fragment>
+  );
+}
+
+render(<App />, container);
+
+// Also works for hydrating if the App was server-side rendered
+// hydrate(<App />, container);
+```
+
+This approach works well if the `p#target` doesn't have to change based on state
+in the Component. If it does, use the next workaround or simply pass the
+container element as a prop to App and imperatively keep it in sync.
+
+```jsx
+function App({ container }) {
+  const [count, setCount] = useState(0);
+
+  // componentDidMount and componentDidUpdate for class components works too
+  useLayoutEffect(() => {
+    if (count % 2 == 0) {
+      container.classList.remove("odd");
+    } else {
+      container.classList.add("odd");
+    }
+  }, [count, container]);
+
+  return (
+    <Fragment>
+      <span>Count: {count} </span>
+      <button onClick={() => setCount(count + 1)}>+1</button>
+    </Fragment>
+  );
+}
+
+render(<App container={container} />, container);
+```
+
+#### Workaround 2: Create a RootFragment
+
+Preact just uses a handful of DOM methods. Implementing a fake DOM container
+that mimics the real container and just contains the child your app cares about
+wouldn't be too difficult.
+
+Checkout this gist for a sample implementation:
+https://gist.github.com/developit/7c1b983dbd2cb68e6cefd367dfcf0ca1
+
+The code above enhances Preact's render function to mimic the `replaceNode` API.
+One upside of this workaround is that the developer owns the implementation of
+the `createRootFragment` and can modify it to meet their specific requirements
+and expectations.
+
+Further it supports an additional scenario `replaceNode` did not: replacing
+multiple DOM elements in one render (see the `replacenode-patch.js` file).
+
+Also, it adds support for the `replaceNode` parameter to `hydrate`. This feature
+enables developers to be more explicit in their desired behavior for how Preact
+should handle existing DOM. Use `hydrate` if it should claim existing DOM or use
+`render` if it should create new DOM elements on initial render.
+
+<dt>Diffing attributes</dt>
 <dd>
 
-Specify which child of a parent to being **rendering** with. Expectation is
-full, corrective property diffing.
+A feature often associated with `replaceNode` is the diffing of attributes.
+However, whether or not attributes are diffed should not be determine by this
+parameter. As described in the "Background" section, attribute diffing is
+determined by whether `render` or `hydrate` is used. As such, this RFC will not
+address changing the existing behavior of attributing diffing in hydrate and
+render.
 
-Currently has bugs when using `replaceNode` (see "Full diffing with
-`replaceNode`" section below).
-
-Closed:
-
-- [preactjs/preact#1645] Unmount with replacing components
-- [preactjs/preact#1665] Wants to diff two different components in one container
-- [preactjs/preact#1722] Creates marker element Preact should mount into
-- [preactjs/preact#1783] Wants property diffing on `replaceNode`
-
-Still open:
-
-- [preactjs/preact#2004] Various cases generally involving diffing
-- [preactjs/preact#2496] Doing a full diff while unmounting element with key
-- [preactjs/preact#2500] Doing a full diff while unmounting matching type
-- [preactjs/preact#2791] Doing a full diff while unmounting element with key
+Therefore if you have an existing DOM tree you want to hydrate as well as update
+attributes to match some client-side state, then run `hydrate`  then `render` on
+the container. If possible, prefer to have VNode props match DOM elements props.
 
 </dd>
 </dl>
@@ -196,32 +288,6 @@ Still open:
 **TODO Mention alternative could be to fix remaining bugs with `replaceNode` but
 how that introduces more complexity and size we'd rather spend on other features
 (e.g. progressive hydration).**
-
-**TODO: mention workaround in [preactjs/preact#2168]**
-
-By default, using `render` without `replaceNode` will always append to the
-parent. This behavior can lead to extra wrapping divs. The former `replaceNode`
-becomes the parent of the Preact app which may also render a top-level `div`.
-
-Some workarounds:
-
-- Use a ["parent root fragment"](https://gist.github.com/developit/7c1b983dbd2cb68e6cefd367dfcf0ca1)
-  to pass to the `parent` parameter of `render`. [Issue where developer claims it works for them](https://github.com/preactjs/preact/issues/2791)
-- To avoid a wrapper div, render a Preact Fragment into the wrapper (or formerly
-  `replaceNode`). Works well if wrapper div doesn't change based on component
-  state.
-
-  ```jsx
-  var wrapper = document.createElement("div");
-  document.body.appendChild(wrapper);
-  render(
-    <Fragment>
-      <A />
-      <B />
-    </Fragment>,
-    wrapper
-  );
-  ```
 
 > What other designs have been considered? What is the impact of not doing this?
 >
@@ -530,6 +596,7 @@ Hydration always claims, normal rendering always rebuilds.
 
 </details>
 
+[preactjs/preact#1557]: https://github.com/preactjs/preact/pull/1557
 [preactjs/preact#1645]: https://github.com/preactjs/preact/issues/1645
 [preactjs/preact#1665]: https://github.com/preactjs/preact/issues/1665
 [preactjs/preact#1722]: https://github.com/preactjs/preact/issues/1722
