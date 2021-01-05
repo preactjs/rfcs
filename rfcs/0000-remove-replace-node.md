@@ -14,8 +14,9 @@ Currently, apps can specify a 3rd parameter to `render`.
 render(<App />, document.body, document.body.firstChild);
 ```
 
-This RFC proposes removing support for the 3rd parameter. It also proposes
-workarounds for most use cases.
+This RFC proposes removing support for the 3rd parameter. However, we do
+appreciate the uses cases it supports and so also propose workarounds for most
+of them.
 
 ## Basic example
 
@@ -132,7 +133,12 @@ implementation.
 
 By removing the parameter, we can rewrite our internals to fit the model of
 "hydration", "mounting" and "diffing" described above which would reduce size,
-runtime, and maintenance cost of Preact.
+runtime, and maintenance cost of Preact. The savings made by removing this
+feature would be used on other features the team wants such as progressive
+hydration, the new `createRoot` API.
+
+Further with the upcoming `createRoot` API (TODO: Add link to RFC), this
+additional parameter makes less sense.
 
 The "Research" section at the bottom outlines PRs and issues related to
 replaceNode and the difficulty in maintaining it.
@@ -273,26 +279,24 @@ the container. If possible, prefer to have VNode props match DOM elements props.
 
 ## Drawbacks
 
-> Why should we _not_ do this? Please consider:
->
-> - implementation cost, both in term of code size, performance, and complexity
-> - whether the proposed feature can be implemented in user space
-> - the impact on teaching people Preact
-> - integration of this feature with other existing and planned features
-> - cost of migrating existing Preact applications (is it a breaking change?)
->
-> There are tradeoffs to choosing any path. Attempt to identify them here.
+Obviously the biggest drawback of this RFC is the nature of the breaking change
+and the developer churn it entails. However we believe the workarounds described
+above are sufficient to ease migration.
 
 ## Alternatives
 
-**TODO Mention alternative could be to fix remaining bugs with `replaceNode` but
-how that introduces more complexity and size we'd rather spend on other features
-(e.g. progressive hydration).**
+The obvious alternative here would be to fix the remaining bugs with
+`replaceNode` and perhaps add native support for `replaceNode` to `hydrate`.
 
-> What other designs have been considered? What is the impact of not doing this?
->
-> This section could also include prior art, that is, how other frameworks in
-> the same domain have solved this problem similarly or differently.
+However, this alternative doesn't address any of the motivations mentioned in
+this PR. The complexity for Preact maintainers and confusion for developers
+coming from Preact 8 would still exist and be a pain point.
+
+In the future, it is possible that an extension or enhancer to the `createRoot`
+could exist to simplify this scenario (e.g. `createReplaceRoot`) that emulates
+the main use case of `replaceNode` and clearly defines the expectations and
+behavior without introducing additional complexity to Preact core. Once the
+`createRoot` API lands it may be something we or the community explores 😊.
 
 ## Adoption strategy
 
