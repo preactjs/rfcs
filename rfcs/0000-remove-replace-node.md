@@ -58,7 +58,7 @@ Related PRs and their associated issues:
 
 <dl>
 
-<dt><a href="https://github.com/preactjs/preact/pull/1557">#1557 (feat) - replaceNode parameter</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1557">#1557</a> (feat) - replaceNode parameter</dt>
 <dd>
 
 Initial PR to add `replaceNode` parameter to Preact X. From reading the
@@ -77,7 +77,7 @@ Associated links:
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/1647">#1647 (fix) - should call unmount when replacing components]()</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1647">#1647</a> (fix) - should call unmount when replacing components</dt>
 <dd>
 
 Subsequent calls to `render` with `replaceNode` parameter should
@@ -97,7 +97,7 @@ Associated issues:
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/1723">#1723 (fix) - replaceNode should unmount when diffing twice with replaceNode</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1723">#1723</a> (fix) - replaceNode should unmount when diffing twice with replaceNode</dt>
 <dd>
 
 This PR stores the rendered virtual tree on the `replaceNode` element instead of
@@ -120,7 +120,7 @@ Associated issues:
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/1786">#1786 (feat) - diff props when replacing a node and don't diff when hydrating</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1786">#1786</a> (feat) - diff props when replacing a node and don't diff when hydrating</dt>
 <dd>
 
 In this issue and PR, we special case the `replaceNode` parameter to apply props
@@ -150,7 +150,7 @@ Associated issues:
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/1900">#1900 (fix) - replacing a node</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/1900">#1900</a> (fix) - replacing a node</dt>
 <dd>
 
 The issue here was caused by first calling `render` with two args then `render`
@@ -179,7 +179,7 @@ Associated issues:
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/2195">#2195 Added unit tests to check proper component unmounting</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/2195">#2195</a> Added unit tests to check proper component unmounting</dt>
 <dd>
 
 This PR adds a test that came out of the discussion in the associated issue
@@ -218,14 +218,13 @@ container element passed in (i.e. stores the previous virtual tree on the
 container). As such, subsequent rerenders must be called with the some container
 element so that the old virtual tree can be compared to the new virtual tree.
 
-
 Associated Issues
 
 - [preactjs/preact#2168]: Unmount not called for nested children on render (since preact X)
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/2274">#2274 avoid removing existing dom nodes on subsequent replaceNode calls</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/2274">#2274</a> avoid removing existing dom nodes on subsequent replaceNode calls</dt>
 <dd>
 
 This PR is similar to #1900 but applies to DOM nodes as well not just text
@@ -244,11 +243,11 @@ Associated Issues
 
 </dd>
 
-<dt><a href="https://github.com/preactjs/preact/pull/2210">#2210 [DRAFT] Handle subtree replaced via replaceNode</a></dt>
+<dt><a href="https://github.com/preactjs/preact/pull/2210">#2210</a> [DRAFT] Handle subtree replaced via replaceNode</dt>
 <dd>
 
 This PR fixes an issue where calling `render` with `replaceNode` doesn't handle
-the case where the result of `render` changes the DOM element of `replaceNode`. 
+the case where the result of `render` changes the DOM element of `replaceNode`.
 
 Associated Issues:
 
