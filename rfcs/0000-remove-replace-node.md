@@ -1,6 +1,6 @@
 - Start Date: 2021-01-04
 - Target Major Version: 11.x
-- RFC PR: (Fill this in once RFC PR is open)
+- RFC PR: [preactjs/rfcs#10](https://github.com/preactjs/rfcs/pull/10)
 - Implementation PR: (partial start:
   [preactjs/preact#2627](https://github.com/preactjs/preact/pull/2627))
 
