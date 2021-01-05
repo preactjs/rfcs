@@ -161,14 +161,12 @@ second attempt to re-claim is unnecessary because the DOM created in the first
 render is already tracked by the store virtual tree. There is no need to
 re-claim it.
 
-However this calling pattern exposed a bug where we weren't properly claiming
-text nodes when `excessDomChildren` wasn't null, causing them to be removed.
+Note, normal hydration didn't invoke this code path (it hit a `dom==null` code
+path that was correct) and so was specific to calling render with `replaceNode`
+after a render or hydration.
 
 Note this PR is superseded by [preactjs/preact#2356] in case you want to follow
 along how the code has changed.
-
-**TODO: Investigate if this could've occurred doing normal hydration or if it
-required the double `render` call pattern to reproduce**
 
 Follow up PRs:
 
@@ -184,7 +182,42 @@ Associated issues:
 <dt><a href="https://github.com/preactjs/preact/pull/2195">#2195 Added unit tests to check proper component unmounting</a></dt>
 <dd>
 
-**TODO**
+This PR adds a test that came out of the discussion in the associated issue
+below. The original issue is about a Preact 8 ability to unmount unrelated
+"islands" of Preact components from a non-Preact parent root. Take the following
+example:
+
+```jsx
+<body>
+  <header></header>
+  <div id="main">
+    <article>
+      <div id="article">
+        {/* Mounted using render(<Article />, article) */}
+        <Article1 />
+      </div>
+    </article>
+    <div id="aside">
+      {/* Mounted using render(<Aside />, aside) */}
+      <Aside />
+    </div>
+  </div>
+</body>
+```
+
+If a client-side navigation were to happen and the app wanted to unmount all
+components under `main`, using Preact 8 a developer could call something like
+`render(<div />, document.body, main)` without having to know or care about
+which DOM under `main` was rendered by Preact components. Preact would climb all
+children under `main` and unmount all children.
+
+This capability is no longer supported in Preact X since it no longer diffs
+against the DOM but instead maintains an in-memory copy of the virtual tree and
+diffs against that. This change implies that Preact now roots its render at the
+container element passed in (i.e. stores the previous virtual tree on the
+container). As such, subsequent rerenders must be called with the some container
+element so that the old virtual tree can be compared to the new virtual tree.
+
 
 Associated Issues
 
@@ -195,7 +228,14 @@ Associated Issues
 <dt><a href="https://github.com/preactjs/preact/pull/2274">#2274 avoid removing existing dom nodes on subsequent replaceNode calls</a></dt>
 <dd>
 
-**TODO**
+This PR is similar to #1900 but applies to DOM nodes as well not just text
+nodes. When calling `render` with a `replaceNode` after first calling `render`,
+we didn't mark DOM nodes as used and so some would get removed as excess. As
+with #1900, `normal` hydrate hit a different code path which didn't invoke this
+bug.
+
+Note this PR is superseded by [preactjs/preact#2356] in case you want to follow
+along how the code has changed.
 
 Associated Issues
 
@@ -207,7 +247,12 @@ Associated Issues
 <dt><a href="https://github.com/preactjs/preact/pull/2210">#2210 [DRAFT] Handle subtree replaced via replaceNode</a></dt>
 <dd>
 
-**TODO**
+This PR fixes an issue where calling `render` with `replaceNode` doesn't handle
+the case where the result of `render` changes the DOM element of `replaceNode`. 
+
+Associated Issues:
+
+- [#2004 Render / replaceNode unexpected behavior?](https://github.com/preactjs/preact/issues/2004)
 
 </dd>
 
@@ -260,6 +305,13 @@ Hydration always claims, normal rendering always rebuilds.
 - [preactjs/preact#2500] (unmounting matching type)
 - [preactjs/preact#2791] (unmounting element with key)
 
+**TODO: Do these match above??**
+
+- [preactjs/preact#2168] (unmounting multiple unrelated roots)
+- [preactjs/preact#1896] (text node removed incorrectly)
+- [preactjs/preact#2264] (dom node remove incorrectly)
+- [preactjs/preact#2210] (replaceNode changes DOM type)
+
 <!-- When calling `render` twice with the `replaceNode` parameter, there are two
 competing sources of truth: the old virtual tree (with it's associated DOM
 nodes) and the DOM tree of `replaceNode`. Which do we use? Currently passing
@@ -294,6 +346,11 @@ Examples of confusion:
 - Expected `replaceNode` to behave like React and be the DOM node that your app
   literally "replaces":
   - https://github.com/preactjs/preact/issues/2522
+- Migrating from 8 to 10
+  - [preactjs/preact#2168]
+  - [preactjs/preact#2260]
+  - [preactjs/preact#2264]
+  - [preactjs/preact#2004]
 
 > Why are we doing this? What use cases does it support? What is the expected
 > outcome?
@@ -351,6 +408,8 @@ they exist.
 **TODO Mention alternative could be to fix remaining bugs with `replaceNode` but
 how that introduces more complexity and size we'd rather spend on other features
 (e.g. progressive hydration).**
+
+**TODO: mention workaround in [preactjs/preact#2168]**
 
 By default, using `render` without `replaceNode` will always append to the
 parent. This behavior can lead to extra wrapping divs. The former `replaceNode`
