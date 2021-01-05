@@ -298,25 +298,13 @@ the main use case of `replaceNode` and clearly defines the expectations and
 behavior without introducing additional complexity to Preact core. Once the
 `createRoot` API lands it may be something we or the community explores 😊.
 
-## Adoption strategy
+## Adoption & documentation strategy
 
-> If we implement this proposal, how will existing Preact developers adopt it?
-> Is this a breaking change? Can we write a codemod? Can we provide a runtime
-> adapter library for the original API it replaces? How will this affect other
-> projects in the Preact ecosystem? Should we coordinate with other projects or
-> libraries?
-
-## How we teach this
-
-> How should this feature be taught to existing Preact developers?
->
-> What names and terminology work best for these concepts and why? How is this
-> idea best presented? As a continuation of existing Preact patterns, or as a
-> wholly new one?
->
-> Would the acceptance of this proposal mean the Preact documentation must be
-> re-organized or altered? Does it change how Preact is taught to new developers
-> at any level?
+- A v10.x deprecation warning will be added to `preact/debug`
+- An eslint plugin could be written to warn when using `render` with 3 params
+- Release notes should call this out as a breaking change and link to this RFC
+- The migration guide for this release should include the workarounds mentioned
+  here
 
 ## Unresolved questions
 
@@ -593,8 +581,6 @@ Hydration always claims, normal rendering always rebuilds.
 </dd>
 
 </dl>
-
-**TODO: Investigate:**
 
 - [#2004 Render / replaceNode unexpected behavior?](https://github.com/preactjs/preact/issues/2004)
 
